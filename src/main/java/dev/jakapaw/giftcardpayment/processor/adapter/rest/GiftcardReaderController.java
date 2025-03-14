@@ -31,7 +31,7 @@ public class GiftcardReaderController {
             }
             Product result = new Product(
                     el.id(),
-                    el.name(),
+                    el.name().replaceAll("'", ""),
                     el.price(),
                     el.quantity(),
                     el.qtyUnitName(),
@@ -39,6 +39,7 @@ public class GiftcardReaderController {
                     discount,
                     calcTax(el)
             );
+
             productList.add(result);
             totalBill.getAndAdd(result.quantity() * result.price() + result.taxAmount() - result.discountAmount());
         });
