@@ -1,4 +1,4 @@
-package dev.jakapaw.giftcardpayment.processor.adapter.sql;
+package dev.jakapaw.giftcardpayment.processor.adapter.sql.entity;
 
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
@@ -13,14 +13,15 @@ public class PaymentEvent {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, targetEntity = InvoiceEntity.class)
-    InvoiceEntity invoiceId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invoice_id")
+    InvoiceEntity invoice;
 
     String paymentStatus;
     LocalDateTime createdAt;
 
-    public PaymentEvent(InvoiceEntity invoiceId, String paymentStatus, LocalDateTime createdAt) {
-        this.invoiceId = invoiceId;
+    public PaymentEvent(InvoiceEntity invoice, String paymentStatus, LocalDateTime createdAt) {
+        this.invoice = invoice;
         this.paymentStatus = paymentStatus;
         this.createdAt = createdAt;
     }

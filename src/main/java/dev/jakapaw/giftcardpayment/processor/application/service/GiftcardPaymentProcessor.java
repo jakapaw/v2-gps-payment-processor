@@ -15,6 +15,7 @@ import dev.jakapaw.giftcardpayment.processor.application.port.out.RetryPayment;
 import lombok.Getter;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,6 +40,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
     @Override
     public String createPayment(CreatePaymentCommand command) {
         String invoiceId = Invoice.generateInvoiceId(command.merchantId());
+
         Invoice invoice = new Invoice(
                 invoiceId,
                 new Buyer(
@@ -93,13 +95,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
         Invoice declined = command.invoice().withStatus(PaymentStatus.DECLINED);
         eventSeq.add(declined);
         savePayment(eventSeq);
-
-        try {
-            PaymentEvent paymentEvent = new PaymentEvent(command.invoice().id(), "PAYMENT_DECLINED", om.writeValueAsString(declined));
-            kafkaPublisher.publish(paymentEvent);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        publishPaymentDeclined(command.invoice());
     }
 
     @Override
@@ -115,6 +111,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
         Deque<Invoice> eventSeq = invoiceEventsSequence.get(command.invoice().id());
         eventSeq.add(newState);
         savePayment(eventSeq);
+        publishPaymentAccepted(command.invoice());
     }
 
     @Override
@@ -127,14 +124,21 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
     @Override
     public void savePayment(Deque<Invoice> invoices) {
         invoiceDAO.savePayment(invoices);
-        publishPaymentAccepted(invoices.peekLast());
     }
 
     public void publishPaymentAccepted(Invoice invoice) {
         try {
             String invoiceJson = om.writeValueAsString(invoice);
-            System.out.println(invoiceJson);
             kafkaPublisher.publish(new PaymentEvent(invoice.buyer().id(), "PAYMENT_ACCEPTED", invoiceJson));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void publishPaymentDeclined(Invoice invoice) {
+        try {
+            String invoiceJson = om.writeValueAsString(invoice);
+            kafkaPublisher.publish(new PaymentEvent(invoice.buyer().id(), "PAYMENT_DECLINED", invoiceJson));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

@@ -1,13 +1,11 @@
-package dev.jakapaw.giftcardpayment.processor.adapter.sql;
+package dev.jakapaw.giftcardpayment.processor.adapter.sql.entity;
 
+import dev.jakapaw.giftcardpayment.processor.adapter.sql.AbstractEntity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,9 +14,12 @@ import java.util.List;
 @Entity
 @NoArgsConstructor
 @Data
+@Table(name = "invoice")
 public class InvoiceEntity extends AbstractEntity<String> {
 
-    @Id @Setter
+    @Id
+    @Setter
+    @Getter
     String id;
 
     @Transient
@@ -39,11 +40,7 @@ public class InvoiceEntity extends AbstractEntity<String> {
     @NotNull
     LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "invoiceId")
+    @OneToMany(mappedBy = "invoice")
     List<PaymentEvent> paymentEvents;
 
-    @Override
-    public String getId() {
-        return id;
-    }
 }
