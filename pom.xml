@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>dev.jakapaw</groupId>
 	<artifactId>giftcard-payment-processor</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>giftcard-payment-processor</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
@@ -56,6 +56,12 @@
 			<artifactId>hibernate-validator</artifactId>
 			<version>8.0.2.Final</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.17.0</version>
+		</dependency>
+
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
