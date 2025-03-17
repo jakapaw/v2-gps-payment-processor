@@ -12,10 +12,12 @@ import dev.jakapaw.giftcardpayment.processor.application.port.in.CreatePayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.in.ProcessPayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.out.LogPayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.out.RetryPayment;
+import io.opentelemetry.context.Context;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,6 +26,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 @Service
 public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, RetryPayment, LogPayment {
 
+    private static final Logger log = LoggerFactory.getLogger(GiftcardPaymentProcessor.class);
     private final InvoiceDAO invoiceDAO;
     private final PublisherGiftcardManager kafkaPublisher;
     private final ObjectMapper om;
@@ -40,6 +43,10 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
     @Override
     public String createPayment(CreatePaymentCommand command) {
         String invoiceId = Invoice.generateInvoiceId(command.merchantId());
+
+        while (invoiceDAO.isInvoiceExist(invoiceId)) {
+            invoiceId = Invoice.generateInvoiceId(command.merchantId());
+        }
 
         Invoice invoice = new Invoice(
                 invoiceId,
@@ -71,21 +78,23 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
 
     @Override
     public void checkVerification(VerifyPaymentCommand command) {
-        Deque<Invoice> eventSeq = invoiceEventsSequence.get(command.invoiceId());
-        Invoice invoice = invoiceEventsSequence.get(command.invoiceId()).peekLast();
-        if (invoice == null)
-            throw new RuntimeException();
+        try {
+            Deque<Invoice> eventSeq = invoiceEventsSequence.get(command.invoiceId());
+            Invoice invoice = invoiceEventsSequence.get(command.invoiceId()).peekLast();
 
-        if (command.isVerified()) {
-            Invoice newState = invoice.withStatus(PaymentStatus.VERIFIED);
-            eventSeq.add(newState);
-            AcceptPaymentCommand acceptPayment = new AcceptPaymentCommand(newState);
-            acceptPayment(acceptPayment);
-        } else {
-            Invoice newState = invoice.withStatus(PaymentStatus.NOTVERIFIED);
-            eventSeq.add(newState);
-            RetryPaymentCommand retryPayment = new RetryPaymentCommand(newState);
-            sendRetryNotification(retryPayment);
+            if (command.isVerified()) {
+                Invoice newState = invoice.withStatus(PaymentStatus.VERIFIED);
+                eventSeq.add(newState);
+                AcceptPaymentCommand acceptPayment = new AcceptPaymentCommand(newState);
+                acceptPayment(acceptPayment);
+            } else {
+                Invoice newState = invoice.withStatus(PaymentStatus.NOTVERIFIED);
+                eventSeq.add(newState);
+                RetryPaymentCommand retryPayment = new RetryPaymentCommand(newState);
+                sendRetryNotification(retryPayment);
+            }
+        } catch (NullPointerException e) {
+            log.error(e.getMessage());
         }
     }
 
@@ -96,6 +105,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
         eventSeq.add(declined);
         savePayment(eventSeq);
         publishPaymentDeclined(command.invoice());
+        invoiceEventsSequence.remove(command.invoice().id());
     }
 
     @Override
@@ -123,7 +133,11 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
 
     @Override
     public void savePayment(Deque<Invoice> invoices) {
-        invoiceDAO.savePayment(invoices);
+        try {
+            invoiceDAO.savePayment(invoices);
+        } catch (Exception e) {
+            log.error("msg: {}", e.getMessage());
+        }
     }
 
     public void publishPaymentAccepted(Invoice invoice) {

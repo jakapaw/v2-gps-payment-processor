@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jakapaw.giftcardpayment.processor.adapter.sql.entity.InvoiceEntity;
 import dev.jakapaw.giftcardpayment.processor.adapter.sql.entity.PaymentEvent;
 import dev.jakapaw.giftcardpayment.processor.application.domain.Invoice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ import java.util.stream.Stream;
 @Component
 public class InvoiceDAO {
 
+    private static final Logger log = LoggerFactory.getLogger(InvoiceDAO.class);
     InvoiceRepository invoiceRepository;
     PaymentEventRepository eventRepository;
     ObjectMapper objectMapper;
@@ -53,5 +56,9 @@ public class InvoiceDAO {
         Stream<PaymentEvent> eventStream = eventSeq.stream()
                 .map(el -> new PaymentEvent(einvoice, el.status().name(), el.createdAt()));
         eventRepository.saveAllAndFlush(eventStream.toList());
+    }
+
+    public boolean isInvoiceExist(String invoiceId) {
+        return invoiceRepository.existsById(invoiceId);
     }
 }

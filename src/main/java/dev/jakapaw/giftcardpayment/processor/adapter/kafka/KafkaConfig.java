@@ -2,11 +2,8 @@ package dev.jakapaw.giftcardpayment.processor.adapter.kafka;
 
 import dev.jakapaw.giftcardpayment.processor.adapter.kafka.model.PaymentEvent;
 import dev.jakapaw.giftcardpayment.processor.adapter.kafka.model.VerifyGiftcard;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +17,6 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 @Configuration
 public class KafkaConfig {
