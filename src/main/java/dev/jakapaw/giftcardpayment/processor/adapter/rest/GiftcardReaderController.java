@@ -5,22 +5,17 @@ import dev.jakapaw.giftcardpayment.processor.adapter.rest.model.ProductDTO;
 import dev.jakapaw.giftcardpayment.processor.application.command.CreatePaymentCommand;
 import dev.jakapaw.giftcardpayment.processor.application.domain.Product;
 import dev.jakapaw.giftcardpayment.processor.application.service.GiftcardPaymentProcessor;
-import io.micrometer.observation.Observation;
-import io.micrometer.observation.ObservationRegistry;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.ContextKey;
-import io.opentelemetry.context.Scope;
-import org.apache.tomcat.util.threads.VirtualThreadExecutor;
+import dev.jakapaw.giftcardpayment.processor.observability.ObservabilityRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
@@ -29,17 +24,13 @@ public class GiftcardReaderController {
 
     private static final Logger log = LoggerFactory.getLogger(GiftcardReaderController.class);
 
-    OpenTelemetry openTelemetry;
-
     @Autowired
     GiftcardPaymentProcessor giftcardPaymentProcessor;
 
-    public GiftcardReaderController(OpenTelemetry openTelemetry) {
-        this.openTelemetry = openTelemetry;
-    }
-
     @PostMapping("createpayment")
     public String createPayment(@RequestBody CreatePaymentDTO body) {
+        ObservabilityRegistry.getInstance().addTimer(body.giftcardId());
+
         List<Product> productList = new ArrayList<>(body.products().size());
         AtomicLong totalBill = new AtomicLong(0);
 
@@ -50,7 +41,7 @@ public class GiftcardReaderController {
             }
             Product result = new Product(
                     el.id(),
-                    el.name().replaceAll("'", ""),
+                    el.name().replaceAll("'", "\'"),
                     el.price(),
                     el.quantity(),
                     el.qtyUnitName(),

@@ -36,11 +36,9 @@ public record Invoice(
         this(id, buyer, seller, status, LocalDateTime.now());
     }
 
-    public static String generateInvoiceId(String sellerId) {
-        RandomStringUtils randomString = RandomStringUtils.secure();
+    public static String generateInvoiceId(String sellerId, String postfix) {
         LocalDate date = LocalDate.now();
-        return sellerId + date.getDayOfMonth() + date.getMonthValue() + date.getYear()
-                + randomString.nextAlphabetic(2).toUpperCase() + randomString.nextNumeric(5);
+        return sellerId + date.getDayOfMonth() + date.getMonthValue() + date.getYear() + postfix;
     }
 
     public Invoice withStatus(PaymentStatus status) {

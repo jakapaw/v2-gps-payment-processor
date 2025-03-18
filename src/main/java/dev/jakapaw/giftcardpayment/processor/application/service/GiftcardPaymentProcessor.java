@@ -12,6 +12,7 @@ import dev.jakapaw.giftcardpayment.processor.application.port.in.CreatePayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.in.ProcessPayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.out.LogPayment;
 import dev.jakapaw.giftcardpayment.processor.application.port.out.RetryPayment;
+import dev.jakapaw.giftcardpayment.processor.observability.ObservabilityRegistry;
 import io.opentelemetry.context.Context;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -42,11 +43,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
 
     @Override
     public String createPayment(CreatePaymentCommand command) {
-        String invoiceId = Invoice.generateInvoiceId(command.merchantId());
-
-        while (invoiceDAO.isInvoiceExist(invoiceId)) {
-            invoiceId = Invoice.generateInvoiceId(command.merchantId());
-        }
+        String invoiceId = Invoice.generateInvoiceId(command.merchantId(), String.valueOf(invoiceDAO.getPostfixSequence()));
 
         Invoice invoice = new Invoice(
                 invoiceId,
@@ -134,9 +131,14 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
     @Override
     public void savePayment(Deque<Invoice> invoices) {
         try {
-            invoiceDAO.savePayment(invoices);
-        } catch (Exception e) {
-            log.error("msg: {}", e.getMessage());
+            Invoice saved = invoiceDAO.savePayment(invoices);
+            if (!invoices.isEmpty()){
+                ObservabilityRegistry.getInstance().removeTimer(
+                        invoices.peekFirst().buyer().id(), "user_payment_process", "id", saved.id());
+            }
+        } catch (RuntimeException | JsonProcessingException e) {
+            e.printStackTrace();
+//            log.error("msg: {}. type: {}", e.getLocalizedMessage(), e.getClass().getSimpleName());
         }
     }
 

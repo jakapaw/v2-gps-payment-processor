@@ -79,7 +79,16 @@
 			<groupId>io.opentelemetry.instrumentation</groupId>
 			<artifactId>opentelemetry-spring-boot-starter</artifactId>
 		</dependency>
-<!--		<dependency>-->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-otlp</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-micrometer</artifactId>
+			<version>6.6.11.Final</version>
+		</dependency>
+		<!--		<dependency>-->
 <!--			<groupId>io.opentelemetry</groupId>-->
 <!--			<artifactId>opentelemetry-api</artifactId>-->
 <!--			<version>${opentelemetry.version}</version>-->

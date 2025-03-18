@@ -5,14 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.jakapaw.giftcardpayment.processor.adapter.sql.entity.InvoiceEntity;
 import dev.jakapaw.giftcardpayment.processor.adapter.sql.entity.PaymentEvent;
 import dev.jakapaw.giftcardpayment.processor.application.domain.Invoice;
+import dev.jakapaw.giftcardpayment.processor.observability.ObservabilityRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.sql.RowSet;
 import java.util.Deque;
 import java.util.stream.Stream;
 
@@ -32,7 +31,7 @@ public class InvoiceDAO {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void savePayment(Deque<Invoice> eventSeq) {
+    public Invoice savePayment(Deque<Invoice> eventSeq) throws JsonProcessingException {
         Invoice dInvoice = eventSeq.peekLast();
 
         InvoiceEntity einvoice = new InvoiceEntity();
@@ -44,21 +43,27 @@ public class InvoiceDAO {
         einvoice.setPaymentStatus(dInvoice.status().name());
         einvoice.setCreatedAt(dInvoice.createdAt());
 
-        try {
-            String products = objectMapper.writeValueAsString(dInvoice.seller().products());
-            einvoice.setProducts(products);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
+        String products = objectMapper.writeValueAsString(dInvoice.seller().products());
+        einvoice.setProducts("E" + products);           // 'E' to tell postgres this string use C like escape string
 
         invoiceRepository.save(einvoice);
 
         Stream<PaymentEvent> eventStream = eventSeq.stream()
                 .map(el -> new PaymentEvent(einvoice, el.status().name(), el.createdAt()));
         eventRepository.saveAllAndFlush(eventStream.toList());
+
+        ObservabilityRegistry.getInstance().countInvoice();
+
+        return dInvoice;
     }
 
     public boolean isInvoiceExist(String invoiceId) {
         return invoiceRepository.existsById(invoiceId);
+    }
+
+    public long getPostfixSequence() {
+        SqlRowSet rowSet = jdbcTemplate.queryForRowSet("SELECT nextval('invoice_postfix')");
+        rowSet.next();
+        return rowSet.getLong(1);
     }
 }
