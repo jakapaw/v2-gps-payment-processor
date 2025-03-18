@@ -6,6 +6,9 @@ import io.micrometer.registry.otlp.OtlpConfig;
 import io.micrometer.registry.otlp.OtlpMeterRegistry;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.actuate.autoconfigure.metrics.export.otlp.OtlpMetricsExportAutoConfiguration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -29,8 +32,8 @@ public class ObservabilityRegistry {
     @Getter
     private static ObservabilityRegistry instance;
 
-    public ObservabilityRegistry(OtlpConfig otlpConfig) {
-        myMeterRegistry = new OtlpMeterRegistry(otlpConfig, Clock.SYSTEM);
+    public ObservabilityRegistry(OtlpMetricsExportAutoConfiguration exportAutoConfiguration, OtlpConfig otlpConfig) {
+        myMeterRegistry = exportAutoConfiguration.otlpMeterRegistry(otlpConfig, Clock.SYSTEM);
         Metrics.addRegistry(myMeterRegistry);
         instance = this;
     }
