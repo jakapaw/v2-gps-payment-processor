@@ -119,6 +119,7 @@ public class GiftcardPaymentProcessor implements CreatePayment, ProcessPayment, 
         eventSeq.add(newState);
         savePayment(eventSeq);
         publishPaymentAccepted(command.invoice());
+        invoiceEventsSequence.remove(command.invoice().id());
     }
 
     @Override
