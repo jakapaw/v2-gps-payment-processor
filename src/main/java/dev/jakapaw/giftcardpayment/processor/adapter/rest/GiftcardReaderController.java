@@ -6,6 +6,7 @@ import dev.jakapaw.giftcardpayment.processor.application.command.CreatePaymentCo
 import dev.jakapaw.giftcardpayment.processor.application.domain.Product;
 import dev.jakapaw.giftcardpayment.processor.application.service.GiftcardPaymentProcessor;
 import dev.jakapaw.giftcardpayment.processor.observability.ObservabilityRegistry;
+import io.micrometer.core.instrument.util.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,7 @@ public class GiftcardReaderController {
             }
             Product result = new Product(
                     el.id(),
-                    el.name().replaceAll("'", "\'"),
+                    el.name(),
                     el.price(),
                     el.quantity(),
                     el.qtyUnitName(),

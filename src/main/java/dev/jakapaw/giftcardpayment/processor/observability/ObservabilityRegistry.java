@@ -23,17 +23,11 @@ public class ObservabilityRegistry {
     private final Map<String, Instant> timerRegistry = new HashMap<>();
     private final MeterRegistry myMeterRegistry;
 
-    @Autowired
-    DataSource dataSource;
-
-    @Autowired
-    MeterRegistry meterRegistry;
-
     @Getter
     private static ObservabilityRegistry instance;
 
-    public ObservabilityRegistry(OtlpMetricsExportAutoConfiguration exportAutoConfiguration, OtlpConfig otlpConfig) {
-        myMeterRegistry = exportAutoConfiguration.otlpMeterRegistry(otlpConfig, Clock.SYSTEM);
+    public ObservabilityRegistry(OtlpConfig otlpConfig) {
+        this.myMeterRegistry = new OtlpMeterRegistry(otlpConfig, Clock.SYSTEM);
         Metrics.addRegistry(myMeterRegistry);
         instance = this;
     }
